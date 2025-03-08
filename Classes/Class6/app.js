@@ -1,10 +1,14 @@
 
 
-import express, { json } from 'express'
+import express, { json, response } from 'express'
 import fs from "fs"
 import { get } from 'http';
 import { v4 as uuidv4 } from 'uuid';
 const app = express()
+import cors from "cors"
+
+
+app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
 
@@ -17,7 +21,7 @@ app.get("/", (req, res)=>{
 
 
 app.post('/createuser', (req, res)=>{
-    res.send("user Created")    
+      
     const fileexist = fs.existsSync('Users.txt');
     if(fileexist){
         //Append User
@@ -32,7 +36,9 @@ app.post('/createuser', (req, res)=>{
         fs.writeFileSync("Users.txt", JSON.stringify(users))
     }
     
-
+    res.json({
+        message : "Useer Created"
+    }) 
 })
 
 
@@ -68,6 +74,29 @@ app.post("/updateUser/:id", (req, res)=>{
     
 
 })
+
+
+app.post("/deleteUser/:userId", (request, response)=>{
+    // console.log("resp", request.params.userId);
+    const getData = fs.readFileSync("Users.txt", "utf-8");
+    const parsData =JSON.parse(getData)
+    // console.log(parsData);
+    const indexNumber= parsData.findIndex((user)=>{
+        if(user.id == request.params.userId){
+            return user
+        } 
+    })
+
+    // console.log( indexNumber, "index");
+    parsData.splice(indexNumber, 1)
+    // console.log(parsData);
+    fs.writeFileSync("Users.txt", JSON.stringify(parsData))
+    
+    response.send("Deleted")
+})
+
+
+
 app.listen(port , ()=>{
     console.log(`server is running on http://localhost:${port}`);
     
