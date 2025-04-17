@@ -1,7 +1,8 @@
-import express, { response, urlencoded } from 'express'
+import express, { json, response, urlencoded } from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
 import userModel from './modrls/models.js'
+import bcrypt from 'bcryptjs'
 
 const app =express()
 app.use(express.json())
@@ -26,20 +27,66 @@ mongoose.connect(URI)
 app.post("/signup", async(request , response) => {
     try {
         const body = request.body 
-        const createUser = await userModel.create(body)
-        
-        console.log(createUser);
-        
-
-        console.log(body);
-        response.json({
-            data : createUser,
-            message : "ho gaya"
+        const samUser = await userModel.findOne({
+            email : body.email
         })
-        
-    } catch (error) {
+
+        if(samUser){
+            return response.json({
+                        data : null,
+                         message : "User already exists"
+             })
+        }
+        const userPassword = body.password
+        const hashPass = await bcrypt.hash(userPassword , 10)
+        const obj = {
+            ...body,
+            password : hashPass
+        }
+        const UserSignUp = userModel.create(obj)
+        response.json({
+            data : UserSignUp,
+            message : "user Signed Up",
+            status : true
+        })  
+      } catch (error) {
         response.json ({
-            message : error.message || "something went wrong"
+            message : error.message || "something went wrong",
+            status : false
+        })
+    }
+})
+
+
+app.post("/login" , async(request , response) => {
+    try {
+        const {email , password} = request.body
+        const user = await userModel.findOne({email})
+        if(!user){
+           return  response.json({
+                message : "login failed",
+                data : null
+            }) 
+        }  
+        const comPass =await bcrypt.compare(password , user.password)
+        if(!comPass){
+            return  response.json({
+                message : "login failed",
+                data : null
+            }) 
+           
+           }
+        
+           response.json({
+            message : "logedIn",
+            data : user
+        })
+
+       
+    } catch (error) {
+        response.json({
+            data : null,
+            message : "something went wrong"
         })
     }
 })
